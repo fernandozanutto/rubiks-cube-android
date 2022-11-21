@@ -12,28 +12,30 @@ import jmini3d.geometry.Geometry
 import jmini3d.geometry.SkyboxGeometry
 import jmini3d.geometry.VariableGeometry
 import jmini3d.material.Material
+import kotlin.math.abs
+import kotlin.math.sign
 
 
 class RubikScene : ParentScene("Rubik demo") {
-    var initialTimeMovement: Long = 0
-    var initialTime: Long
-    var direction = Vector3(0F, 1F, 0f)
-    var side = Vector3(1f, 0f, 0f)
-    var up = Vector3(0f, 0f, 1f)
-    var pos = Vector3(0f, 0f, 0f)
-    var o3d: Object3d
-    var rotationGroup = Object3d()
-    var nextRotationAxis = -1
-    var nextRotationSection = 0
-    var nextRotationAngle = 0f
-    var random: Random = Random()
-    var axis = arrayOf(
-        Vector3(1f, 0f, 0f),
-        Vector3(0f, 1f, 0f),
-        Vector3(0f, 0f, 1f)
+    private var initialTimeMovement: Long = 0
+    private var initialTime: Long
+    private val direction = Vector3(0F, 1F, 0f)
+    private val side = Vector3(1f, 0f, 0f)
+    private val up = Vector3(0f, 0f, 1f)
+    private val pos = Vector3(0f, 0f, 0f)
+    private val cube3dObject = Object3d()
+    private val rotationGroup = Object3d()
+    private var nextRotationAxis = -1
+    private var nextRotationSection = 0
+    private var nextRotationAngle = 0f
+    private val random: Random = Random()
+    private val axis = arrayOf(
+        Vector3(1f, 0f, 0f), // x axis
+        Vector3(0f, 1f, 0f), // y axis
+        Vector3(0f, 0f, 1f)  // z axis
     )
-    var rotations = arrayOfNulls<Vector3>(9 * 3)
-    var positions = arrayOfNulls<Vector3>(9)
+    private var rotations = arrayOfNulls<Vector3>(9 * 3)
+    private var positions = arrayOfNulls<Vector3>(9)
 
     init {
         val envMap = CubeMapTexture(
@@ -48,8 +50,8 @@ class RubikScene : ParentScene("Rubik demo") {
         )
         val skyboxGeometry: VariableGeometry = SkyboxGeometry(300f)
         val skyboxMaterial = Material()
-        //skyboxMaterial.setEnvMap(envMap, 0f)
-        //skyboxMaterial.setUseEnvMapAsMap(true)
+        skyboxMaterial.setEnvMap(envMap, 0f)
+        skyboxMaterial.setUseEnvMapAsMap(true)
         val skybox = Object3d(skyboxGeometry, skyboxMaterial)
         addChild(skybox)
         val map = Texture("cube.png")
@@ -70,7 +72,7 @@ class RubikScene : ParentScene("Rubik demo") {
                 Color4(200, 100, 0, 255)
             )
         )
-        o3d = Object3d()
+
         for (iz in -1..1) {
             for (iy in -1..1) {
                 for (ix in -1..1) {
@@ -105,25 +107,25 @@ class RubikScene : ParentScene("Rubik demo") {
                     val piece = Object3d(geometry, material1, vertexColors)
                     piece.scale = 0.5f
                     piece.setPosition(ix * 1f, iy * 1f, iz * 1f)
-                    o3d.addChild(piece)
+                    cube3dObject.addChild(piece)
                 }
             }
         }
-        o3d.setPosition(0f, 0f, 0f)
-        o3d.scale = 0.35f
-        addChild(o3d)
+        cube3dObject.setPosition(0f, 0f, 0f)
+        cube3dObject.scale = 0.5f
+        addChild(cube3dObject)
         initialTime = System.currentTimeMillis()
-        run {
-            var i = 0
-            while (i < rotations.size) {
-                rotations[i] = Vector3(axis[1])
-                rotations[i + 1] = Vector3(axis[0])
-                rotations[i + 2] = Vector3(axis[2])
-                i += 3
-            }
+
+        var i = 0
+        while (i < rotations.size) {
+            rotations[i] = Vector3(axis[1])
+            rotations[i + 1] = Vector3(axis[0])
+            rotations[i + 2] = Vector3(axis[2])
+            i += 3
         }
-        for (i in positions.indices) {
-            positions[i] = Vector3(0f, 0f, 0f)
+
+        for (j in positions.indices) {
+            positions[j] = Vector3(0f, 0f, 0f)
         }
     }
 
@@ -137,14 +139,20 @@ class RubikScene : ParentScene("Rubik demo") {
         rotate(axis, angle, up)
     }
 
+    private val cubeDirectionVector = Vector3(0F, 1F, 0f)
+    private val cubeSideVector = Vector3(1f, 0f, 0f)
+    private val cubeUpVector = Vector3(0f, 0f, 1f)
+
     override fun update() {
-        direction.setAllFrom(axis[1])
-        side.setAllFrom(axis[0])
-        up.setAllFrom(axis[2])
-        val ellapsedTime = System.currentTimeMillis() - initialTime
-        rotate(2, Math.toRadians((ellapsedTime / 10f).toDouble()).toFloat(), direction, up, side)
-        rotate(0, Math.toRadians((ellapsedTime / 21f).toDouble()).toFloat(), direction, up, side)
-        o3d.setRotationMatrix(direction, up, side)
+        cubeDirectionVector.setAllFrom(axis[1])
+        cubeSideVector.setAllFrom(axis[0])
+        cubeUpVector.setAllFrom(axis[2])
+
+        //rotate(2, Math.toRadians(-theta).toFloat(), cubeDirectionVector, cubeUpVector, cubeSideVector)
+        //rotate(1, Math.toRadians(phi).toFloat(), cubeDirectionVector, cubeUpVector, cubeSideVector)
+
+        cube3dObject.setRotationMatrix(cubeDirectionVector, cubeUpVector, cubeSideVector)
+
         if (nextRotationAxis == -1) {
             initialTimeMovement = System.currentTimeMillis()
 
@@ -159,8 +167,8 @@ class RubikScene : ParentScene("Rubik demo") {
             rotationGroup.getChildren().clear()
             var i = 0
             var j = 0
-            for (piece in o3d.getChildren()) {
-                if (Math.abs(
+            for (piece in cube3dObject.getChildren()) {
+                if (abs(
                         Vector3.dot(
                             piece.position,
                             axis[nextRotationAxis]
@@ -174,8 +182,8 @@ class RubikScene : ParentScene("Rubik demo") {
             }
         } else if (nextRotationAxis >= 0) {
             val step = (System.currentTimeMillis() - initialTimeMovement) / 3f
-            var angle = step * Math.signum(nextRotationAngle)
-            if (Math.abs(angle) >= Math.abs(nextRotationAngle)) {
+            var angle = step * sign(nextRotationAngle)
+            if (abs(angle) >= abs(nextRotationAngle)) {
                 angle = nextRotationAngle
             }
             var i = 0
@@ -201,4 +209,6 @@ class RubikScene : ParentScene("Rubik demo") {
             }
         }
     }
+
+    override fun onMoveScreen(deltaX: Double, deltaY: Double) {}
 }

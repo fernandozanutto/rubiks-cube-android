@@ -2,7 +2,6 @@ package com.fzanutto.rubikscube
 
 import android.os.Bundle
 import com.fzanutto.rubikscube.databinding.ActivityMainBinding
-import cube.Cube
 import jmini3d.android.Activity3d
 import jmini3d.android.input.InputController
 
@@ -15,7 +14,7 @@ class MainActivity : Activity3d() {
 
         super.onCreate(savedInstanceState)
 
-        val screenController = DemoScreenController()
+        val screenController = MainScreenController()
 
         glSurfaceView3d.setScreenController(screenController)
         glSurfaceView3d.setLogFps(true)
